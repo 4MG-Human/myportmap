@@ -1,7 +1,25 @@
 import os
 import platform
+import urllib.request
 from pathlib import Path
 from pydantic_settings import BaseSettings
+
+
+def _get_default_public_ip() -> str:
+    env_ip = os.getenv("VPN_PUBLIC_IP")
+    if env_ip:
+        return env_ip
+    # محاولة كشف الـ IP العام تلقائيًا من الخارج
+    for url in ("https://api.ipify.org", "https://ifconfig.me/ip"):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "curl/7.68.0"})
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
+                ip = resp.read().decode("utf-8").strip()
+                if ip and len(ip) <= 45:
+                    return ip
+        except Exception:
+            continue
+    return "127.0.0.1"
 
 
 class Settings(BaseSettings):
@@ -16,7 +34,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite:///./myportmap.db"
 
-    VPN_PUBLIC_IP: str = "127.0.0.1"
+    VPN_PUBLIC_IP: str = _get_default_public_ip()
     VPN_PORT: int = 1194
     VPN_PROTO: str = "udp"
 
@@ -37,3 +55,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
