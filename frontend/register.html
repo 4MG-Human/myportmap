@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>إنشاء حساب — MyPortMap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>إنشاء حساب</h1>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password (8+ أحرف)">
+    <button onclick="doRegister()">Create Account</button>
+    <div id="err" class="error"></div>
+    <div class="link">لديك حساب؟ <a href="login.html">سجّل الدخول</a></div>
+  </div>
+<script>
+async function doRegister() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const res = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email, password})
+  });
+  if (res.ok) {
+    window.location.href = 'login.html';
+  } else {
+    const data = await res.json();
+    document.getElementById('err').innerText = data.detail || 'حدث خطأ';
+  }
+}
+</script>
+</body>
+</html>

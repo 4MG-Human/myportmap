@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard — MyPortMap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container" style="max-width:640px;">
+    <h1>MYPORTMAP</h1>
+    <div style="text-align:left;"><button style="width:auto;padding:6px 14px;background:#262a33;" onclick="logout()">Logout</button></div>
+
+    <div class="card">
+      <h3>VPN CLIENT</h3>
+      <div id="vpnInfo">جارِ التحميل...</div>
+      <button onclick="createClient()">إنشاء / عرض عميل VPN</button>
+      <button onclick="downloadOvpn()" style="background:#262a33;">Download .OVPN</button>
+    </div>
+
+    <div class="card">
+      <h3>PORT MAPPINGS</h3>
+      <div id="mappingsList">جارِ التحميل...</div>
+
+      <select id="protocol">
+        <option value="tcp">TCP</option>
+        <option value="udp">UDP</option>
+      </select>
+      <input id="localPort" type="number" placeholder="Local Port (مثال: 8080)">
+      <button onclick="createMapping()">+ CREATE MAPPING</button>
+      <div id="err" class="error"></div>
+    </div>
+  </div>
+
+<script src="js/app.js"></script>
+<script>
+requireAuth();
+
+async function refreshStatus() {
+  const res = await apiFetch('/api/vpn/status');
+  if (!res) return;
+  const data = await res.json();
+  const badge = data.connected
+    ? '<span class="badge connected">CONNECTED</span>'
+    : '<span class="badge offline">OFFLINE</span>';
+  document.getElementById('vpnInfo').innerHTML =
+    `Status: ${badge}<br>VPN IP: ${data.vpn_ip || '—'}`;
+}
+
+async function createClient() {
+  const res = await apiFetch('/api/vpn/client', { method: 'POST' });
+  if (res && res.ok) refreshStatus();
+}
+
+async function downloadOvpn() {
+  const res = await apiFetch('/api/vpn/config');
+  if (!res || !res.ok) { alert('أنشئ عميل VPN أولًا'); return; }
+  const text = await res.text();
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'myportmap-client.ovpn';
+  a.click();
+}
+
+async function refreshMappings() {
+  const res = await apiFetch('/api/mappings');
+  if (!res) return;
+  const rows = await res.json();
+  const el = document.getElementById('mappingsList');
+  if (rows.length === 0) {
+    el.innerHTML = '<div style="color:#9aa0ab;">لا توجد Mappings بعد</div>';
+    return;
+  }
+  el.innerHTML = rows.map(m => `
+    <div class="row">
+      <span>${m.protocol.toUpperCase()} &nbsp; ${m.public_host}:${m.external_port} → local:${m.local_port}</span>
+      <button style="width:auto;padding:4px 10px;background:#3d1f1f;" onclick="deleteMapping(${m.id})">حذف</button>
+    </div>
+  `).join('');
+}
+
+async function createMapping() {
+  const protocol = document.getElementById('protocol').value;
+  const local_port = parseInt(document.getElementById('localPort').value, 10);
+  document.getElementById('err').innerText = '';
+  const res = await apiFetch('/api/mappings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ protocol, local_port })
+  });
+  if (res && res.ok) {
+    refreshMappings();
+  } else if (res) {
+    const data = await res.json();
+    document.getElementById('err').innerText = data.detail || 'فشل إنشاء Mapping';
+  }
+}
+
+async function deleteMapping(id) {
+  const res = await apiFetch(`/api/mappings/${id}`, { method: 'DELETE' });
+  if (res && res.ok) refreshMappings();
+}
+
+refreshStatus();
+refreshMappings();
+setInterval(refreshStatus, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>تسجيل الدخول — MyPortMap</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>تسجيل الدخول</h1>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="doLogin()">Login</button>
+    <div id="err" class="error"></div>
+    <div class="link">ليس لديك حساب؟ <a href="register.html">أنشئ حساب</a></div>
+  </div>
+<script src="js/app.js"></script>
+<script>
+async function doLogin() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const body = new URLSearchParams();
+  body.set('username', email);
+  body.set('password', password);
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body
+  });
+  if (res.ok) {
+    const data = await res.json();
+    setToken(data.access_token);
+    window.location.href = 'dashboard.html';
+  } else {
+    const data = await res.json();
+    document.getElementById('err').innerText = data.detail || 'بيانات الدخول غير صحيحة';
+  }
+}
+</script>
+</body>
+</html>
