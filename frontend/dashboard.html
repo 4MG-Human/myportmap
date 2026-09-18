@@ -48,7 +48,12 @@ async function refreshStatus() {
 
 async function createClient() {
   const res = await apiFetch('/api/vpn/client', { method: 'POST' });
-  if (res && res.ok) refreshStatus();
+  if (res && res.ok) {
+    await refreshStatus();
+  } else if (res) {
+    const data = await res.json();
+    alert(data.detail || 'حدث خطأ أثناء إنشاء عميل VPN');
+  }
 }
 
 async function downloadOvpn() {

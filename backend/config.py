@@ -1,9 +1,15 @@
+import os
 import platform
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DEV_MODE: bool = platform.system() == "Windows"
+    DEV_MODE: bool = (
+        platform.system() == "Windows"
+        or os.getenv("CODESPACES") == "true"
+        or not Path("/etc/openvpn/easy-rsa").exists()
+    )
     SECRET_KEY: str = "dev-only-change-me"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
